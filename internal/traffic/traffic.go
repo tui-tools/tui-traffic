@@ -72,7 +72,7 @@ type Rate struct {
 	// Window is the time between the two samples the rate was computed over.
 	// A window that is not the one the user asked for is the honest
 	// explanation for a number that looks wrong, so it travels with it.
-	Window time.Duration `json:"windowMillis"`
+	Window time.Duration `json:"windowNanos"`
 
 	// Reset reports that a counter went backwards between the samples, which
 	// happens when an interface is recreated or a 32-bit counter wraps. The

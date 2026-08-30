@@ -5,10 +5,14 @@
 # machine-wide one. TUI_TRAFFIC_* environment variables override both, and
 # command line flags override everything.
 
-# This tool's own key: the directory to list. Replace it with yours.
-dir = "."
+# How often to sample. A rate is the difference between two readings and the
+# time between them, so this is the window every number on the interfaces
+# screen is measured over. It is held between 100ms and 30s.
+interval = "1s"
 
-# Privilege escalation prefix used for actions; "" runs the command directly.
+# Privilege escalation prefix, used for the one read that needs root: the
+# connection tracking table. "" runs without escalation, and the connections
+# screen then falls back to counting sockets and says so.
 sudo = "sudo -n"
 
 # Path to an Omarchy-style colors.toml. Empty follows the active Omarchy
@@ -16,5 +20,5 @@ sudo = "sudo -n"
 theme = ""
 
 # Every key can also be set in the environment, upper-cased and prefixed:
-#   TUI_TRAFFIC_DIR=/srv
+#   TUI_TRAFFIC_INTERVAL=2s
 #   TUI_TRAFFIC_SUDO="doas"

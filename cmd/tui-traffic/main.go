@@ -1,11 +1,12 @@
-// Command tui-traffic is the starting point for a new tui-tools tool. It
-// lists the files in a directory and can update a file's timestamp, which is
-// deliberately trivial: what matters is the shape around it, which is the same
-// in every tool of the family.
+// Command tui-traffic shows what the network on one Linux machine is doing
+// right now: throughput per interface with a sparkline over the last minute,
+// the connection tracking table summarised, and the sockets that are
+// listening or established.
 //
-// Rename it, replace internal/tool with your own subject, and keep the
-// contract: read-only by default, and no change without a previewed and
-// confirmed command line.
+// It is read-only, and not by default: there is no action key, no confirm
+// dialog and no command builder anywhere in it. Every number comes from a
+// file the kernel already exports, and the one program it ever runs —
+// conntrack, to read a table only root can see — is a read.
 package main
 
 import (
@@ -13,29 +14,44 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/tui-tools/tui-kit/config"
 	"github.com/tui-tools/tui-kit/theme"
-	"github.com/tui-tools/tui-traffic/internal/tool"
+	"github.com/tui-tools/tui-traffic/internal/traffic"
 )
 
 // toolName is the binary name, which is also the configuration directory:
 // /etc/tui-traffic/config.toml and ~/.config/tui-traffic/config.toml.
 const toolName = "tui-traffic"
 
-// keyDir is this tool's own configuration key. Yours go here.
-const keyDir = "dir"
+// keyInterval is this tool's own configuration key: how often it samples.
+const keyInterval = "interval"
+
+// defaultInterval is one second, which is what makes the numbers on screen
+// throughput rather than an average over something longer.
+const defaultInterval = time.Second
+
+// The interval is bounded at both ends. Below the floor the two reads of
+// /proc/net/dev cost more than the traffic they measure and the rate becomes
+// mostly noise; above the ceiling the screen is a history rather than a
+// picture of now, and the sparkline's minute of memory would cover half a
+// day.
+const (
+	minInterval = 100 * time.Millisecond
+	maxInterval = 30 * time.Second
+)
 
 // version is stamped by the release build (-ldflags "-X main.version=…").
 var version = "dev"
 
 // defaults declares the configuration keys the tool understands. Only these
-// are read from the environment (TUI_TRAFFIC_DIR, …), so an unrelated
+// are read from the environment (TUI_TRAFFIC_INTERVAL, …), so an unrelated
 // variable can never leak into the configuration.
 func defaults() map[string]string {
 	return map[string]string{
-		keyDir:          ".",
+		keyInterval:     defaultInterval.String(),
 		config.KeySudo:  "sudo -n",
 		config.KeyTheme: "",
 	}
@@ -44,8 +60,9 @@ func defaults() map[string]string {
 // options holds the parsed command line.
 type options struct {
 	demo        bool
+	check       bool
 	report      bool
-	dir         string
+	interval    string
 	themePath   string
 	sudo        string
 	showVersion bool
@@ -60,17 +77,21 @@ func parseFlags(args []string, out *os.File) (options, error) {
 	fs := flag.NewFlagSet(toolName, flag.ContinueOnError)
 	fs.SetOutput(out)
 	fs.BoolVar(&opts.demo, "demo", false,
-		"run against sample data, without touching anything")
+		"run against a machine that does not exist, without reading this one")
+	fs.BoolVar(&opts.check, "check", false,
+		"take one sample of all three screens, print it as JSON and exit "+
+			"(no UI, nothing is changed); it takes about one interval to answer, "+
+			"because a rate is two reads and the time between them")
 	fs.BoolVar(&opts.report, "report", false, reportUsage)
-	fs.StringVar(&opts.dir, "dir", "",
-		"directory to list (overrides the config file)")
+	fs.StringVar(&opts.interval, "interval", "",
+		"how often to sample, e.g. 500ms or 2s (overrides the config file)")
 	fs.StringVar(&opts.themePath, "theme", "",
 		"path to an Omarchy-style colors.toml (overrides the config file)")
 	fs.StringVar(&opts.sudo, "sudo", "",
 		"privilege escalation prefix, e.g. \"sudo -n\" or \"\" to disable")
 	fs.BoolVar(&opts.showVersion, "version", false, "print the version and exit")
 	fs.Usage = func() {
-		_, _ = fmt.Fprintf(out, "tui-traffic — a starting point for a tui-tools tool\n\n"+
+		_, _ = fmt.Fprintf(out, "tui-traffic — what the network is doing right now\n\n"+
 			"Usage:\n  tui-traffic [flags]\n\nFlags:\n")
 		fs.PrintDefaults()
 		_, _ = fmt.Fprintf(out, "\nConfiguration is read from %s, then %s, "+
@@ -96,7 +117,8 @@ func main() {
 }
 
 // run wires the configuration, the backend and the Bubble Tea program. Every
-// tool in the family has this function, and it is worth keeping it recognisable.
+// tool in the family has this function, and it is worth keeping it
+// recognisable.
 func run(args []string) error {
 	opts, err := parseFlags(args, os.Stdout)
 	if err != nil {
@@ -117,6 +139,11 @@ func run(args []string) error {
 	}
 	applyOverrides(&cfg, opts)
 
+	interval, err := resolveInterval(cfg)
+	if err != nil {
+		return err
+	}
+
 	// The configured theme is handed to the kit through the same variable the
 	// user could set by hand, so precedence stays in one place. It is set
 	// before the backend is built so --report can name the theme the UI would
@@ -127,26 +154,32 @@ func run(args []string) error {
 		}
 	}
 
-	// --report is the non-interactive path that must work everywhere. It reads
-	// nothing privileged and it survives a machine where no backend can be
-	// built, because "there is nothing here to drive" is one of the things a
-	// bug report has to be able to say. So it comes before the backend is
-	// required.
+	// --report is the non-interactive path that must work everywhere. It
+	// takes no sample and needs no privilege, and it comes before the backend
+	// is required: a machine the tool cannot read at all is a machine whose
+	// bug report still has to be filable.
 	if opts.report {
-		return runReport(cfg, opts, os.Stdout)
+		return runReport(cfg, opts, interval, os.Stdout)
 	}
+
+	// The conntrack version is probed once, at startup, and shown in the
+	// header. A machine without it gets an empty result rather than an error:
+	// most machines do not have it, and the connections screen has an answer
+	// for that.
+	backendCompat := probeCompat(context.Background(), opts.demo)
 
 	backend, err := pickBackend(cfg, opts)
 	if err != nil {
 		return err
 	}
 
-	// The backend's version is probed once, at startup, and shown in the
-	// header: a version nobody has tested says so there instead of surprising
-	// the user later.
-	backendCompat := probeCompat(context.Background(), opts.demo)
+	// --check is the other non-interactive path: it samples once and prints,
+	// and never starts a terminal program.
+	if opts.check {
+		return runCheck(backend, backendCompat, interval, os.Stdout)
+	}
 
-	program := tea.NewProgram(newApp(backend, theme.New(), backendCompat),
+	program := tea.NewProgram(newApp(backend, theme.New(), backendCompat, interval),
 		tea.WithAltScreen())
 	_, err = program.Run()
 	return err
@@ -155,8 +188,8 @@ func run(args []string) error {
 // applyOverrides folds the command line into the configuration, which is the
 // last and highest-precedence layer.
 func applyOverrides(cfg *config.Config, opts options) {
-	if opts.dir != "" {
-		cfg.Set(keyDir, opts.dir)
+	if opts.interval != "" {
+		cfg.Set(keyInterval, opts.interval)
 	}
 	if opts.themePath != "" {
 		cfg.Set(config.KeyTheme, opts.themePath)
@@ -168,10 +201,27 @@ func applyOverrides(cfg *config.Config, opts options) {
 	}
 }
 
-// pickBackend returns the demo backend or the real one.
-func pickBackend(cfg config.Config, opts options) (tool.Backend, error) {
-	if opts.demo {
-		return tool.NewFake(), nil
+// resolveInterval reads the sampling interval and holds it to the bounds.
+//
+// An interval that cannot be parsed is an error rather than a silent fallback
+// to the default: somebody who wrote `--interval 2` meant something by it,
+// and starting at one second while they watch for a change is worse than
+// saying so. One that is merely out of range is clamped and runs, because the
+// intent is clear and the tool still works.
+func resolveInterval(cfg config.Config) (time.Duration, error) {
+	text := cfg.String(keyInterval, defaultInterval.String())
+	interval, err := time.ParseDuration(text)
+	if err != nil {
+		return 0, fmt.Errorf(
+			"%s is not a duration: write it as 500ms, 1s or 2s", text)
 	}
-	return tool.New(cfg.String(keyDir, "."), cfg.SudoPrefix())
+	return min(max(interval, minInterval), maxInterval), nil
+}
+
+// pickBackend returns the demo backend or the real one.
+func pickBackend(cfg config.Config, opts options) (traffic.Backend, error) {
+	if opts.demo {
+		return traffic.NewFake(), nil
+	}
+	return traffic.New(cfg.SudoPrefix())
 }
