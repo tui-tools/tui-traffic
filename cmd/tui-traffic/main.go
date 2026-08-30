@@ -1,4 +1,4 @@
-// Command tui-template is the starting point for a new tui-tools tool. It
+// Command tui-traffic is the starting point for a new tui-tools tool. It
 // lists the files in a directory and can update a file's timestamp, which is
 // deliberately trivial: what matters is the shape around it, which is the same
 // in every tool of the family.
@@ -17,12 +17,12 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/tui-tools/tui-kit/config"
 	"github.com/tui-tools/tui-kit/theme"
-	"github.com/tui-tools/tui-template/internal/tool"
+	"github.com/tui-tools/tui-traffic/internal/tool"
 )
 
 // toolName is the binary name, which is also the configuration directory:
-// /etc/tui-template/config.toml and ~/.config/tui-template/config.toml.
-const toolName = "tui-template"
+// /etc/tui-traffic/config.toml and ~/.config/tui-traffic/config.toml.
+const toolName = "tui-traffic"
 
 // keyDir is this tool's own configuration key. Yours go here.
 const keyDir = "dir"
@@ -31,7 +31,7 @@ const keyDir = "dir"
 var version = "dev"
 
 // defaults declares the configuration keys the tool understands. Only these
-// are read from the environment (TUI_TEMPLATE_DIR, …), so an unrelated
+// are read from the environment (TUI_TRAFFIC_DIR, …), so an unrelated
 // variable can never leak into the configuration.
 func defaults() map[string]string {
 	return map[string]string{
@@ -70,11 +70,11 @@ func parseFlags(args []string, out *os.File) (options, error) {
 		"privilege escalation prefix, e.g. \"sudo -n\" or \"\" to disable")
 	fs.BoolVar(&opts.showVersion, "version", false, "print the version and exit")
 	fs.Usage = func() {
-		_, _ = fmt.Fprintf(out, "tui-template — a starting point for a tui-tools tool\n\n"+
-			"Usage:\n  tui-template [flags]\n\nFlags:\n")
+		_, _ = fmt.Fprintf(out, "tui-traffic — a starting point for a tui-tools tool\n\n"+
+			"Usage:\n  tui-traffic [flags]\n\nFlags:\n")
 		fs.PrintDefaults()
 		_, _ = fmt.Fprintf(out, "\nConfiguration is read from %s, then %s, "+
-			"then TUI_TEMPLATE_* in the environment.\n",
+			"then TUI_TRAFFIC_* in the environment.\n",
 			config.SystemPathFor(toolName), config.UserPathFor(toolName))
 	}
 	if err := fs.Parse(args); err != nil {
