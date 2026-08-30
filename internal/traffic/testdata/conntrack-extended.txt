@@ -1,0 +1,9 @@
+ipv4     2 tcp      6 431995 ESTABLISHED src=192.0.2.14 dst=198.51.100.7 sport=51234 dport=443 packets=8142 bytes=11482113 src=198.51.100.7 dst=192.0.2.14 sport=443 dport=51234 packets=9033 bytes=48211904 [ASSURED] mark=0 use=1
+ipv4     2 tcp      6 118 TIME_WAIT src=192.0.2.14 dst=198.51.100.9 sport=50988 dport=80 packets=38 bytes=14119 src=198.51.100.9 dst=192.0.2.14 sport=80 dport=50988 packets=41 bytes=52118 [ASSURED] mark=0 use=1
+ipv4     2 tcp      6 59 SYN_SENT src=192.0.2.14 dst=198.51.100.44 sport=51301 dport=8443 packets=3 bytes=180 [UNREPLIED] src=198.51.100.44 dst=192.0.2.14 sport=8443 dport=51301 packets=0 bytes=0 mark=0 use=1
+ipv4     2 tcp      6 431082 ESTABLISHED src=198.51.100.31 dst=192.0.2.14 sport=60122 dport=22 packets=4401 bytes=1204998 src=192.0.2.14 dst=198.51.100.31 sport=22 dport=60122 packets=5210 bytes=3881204 [ASSURED] mark=0 use=1
+ipv4     2 udp      17 27 src=192.0.2.14 dst=192.0.2.1 sport=53114 dport=53 packets=2 bytes=288 src=192.0.2.1 dst=192.0.2.14 sport=53 dport=53114 packets=2 bytes=404 mark=0 use=1
+ipv4     2 udp      17 178 src=192.0.2.14 dst=198.51.100.88 sport=51820 dport=51820 packets=91233 bytes=68119004 src=198.51.100.88 dst=192.0.2.14 sport=51820 dport=51820 packets=88104 bytes=61004881 [ASSURED] mark=0 use=1
+ipv4     2 icmp     1 29 src=192.0.2.14 dst=198.51.100.7 type=8 code=0 id=4210 packets=4 bytes=336 src=198.51.100.7 dst=192.0.2.14 type=0 code=0 id=4210 packets=4 bytes=336 mark=0 use=1
+ipv6     10 tcp      6 431901 ESTABLISHED src=2001:db8::14 dst=2001:db8:1::7 sport=51500 dport=443 packets=1882 bytes=998112 src=2001:db8:1::7 dst=2001:db8::14 sport=443 dport=51500 packets=2044 bytes=8811233 [ASSURED] mark=0 use=1
+conntrack v1.4.8 (conntrack-tools): 8 flow entries have been shown.
