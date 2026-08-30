@@ -1,8 +1,8 @@
-# tui-template configuration.
+# tui-traffic configuration.
 #
-# Read from /etc/tui-template/config.toml first, then
-# ~/.config/tui-template/config.toml, with the user file overriding the
-# machine-wide one. TUI_TEMPLATE_* environment variables override both, and
+# Read from /etc/tui-traffic/config.toml first, then
+# ~/.config/tui-traffic/config.toml, with the user file overriding the
+# machine-wide one. TUI_TRAFFIC_* environment variables override both, and
 # command line flags override everything.
 
 # This tool's own key: the directory to list. Replace it with yours.
@@ -16,5 +16,5 @@ sudo = "sudo -n"
 theme = ""
 
 # Every key can also be set in the environment, upper-cased and prefixed:
-#   TUI_TEMPLATE_DIR=/srv
-#   TUI_TEMPLATE_SUDO="doas"
+#   TUI_TRAFFIC_DIR=/srv
+#   TUI_TRAFFIC_SUDO="doas"

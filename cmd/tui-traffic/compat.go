@@ -5,13 +5,15 @@ import (
 
 	"github.com/tui-tools/tui-kit/compat"
 	"github.com/tui-tools/tui-kit/manifest"
-	tuitemplate "github.com/tui-tools/tui-template"
+	tuitraffic "github.com/tui-tools/tui-traffic"
 )
 
 // backendName is the name the manifest gives the backend this tool drives.
-// The template drives `touch`, so its example backend is coreutils; yours will
-// be ufw, systemd, snapper.
-const backendName = "coreutils"
+// tui-traffic reads the kernel's own files for almost everything and drives
+// exactly one program: conntrack, for the connections screen. A machine
+// without it is an ordinary case rather than a failure, so the probe coming
+// back with no version is an answer the tool shows.
+const backendName = "conntrack"
 
 // probeCompat reads the version of the backend the tool is about to drive and
 // classifies it against what the manifest declares: below the minimum, tested,
@@ -28,7 +30,7 @@ func probeCompat(ctx context.Context, demo bool) compat.Result {
 	if demo {
 		return compat.Result{}
 	}
-	m, err := manifest.Load(tuitemplate.ManifestJSON)
+	m, err := manifest.Load(tuitraffic.ManifestJSON)
 	if err != nil {
 		return compat.Result{}
 	}

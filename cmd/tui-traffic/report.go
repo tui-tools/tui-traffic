@@ -11,9 +11,9 @@ import (
 	"github.com/tui-tools/tui-kit/theme"
 )
 
-// listerName is what the real backend calls itself (tool.Real.Name()). It is
-// not what the manifest calls the program that backend drives — coreutils —
-// and most tools have one name for both.
+// listerName is what the real backend calls itself. It is not what the
+// manifest calls the program that backend drives — conntrack — and the two
+// are separate because most of what this tool reads is not a program at all.
 const listerName = "files"
 
 // runReport prints the block a bug report needs and exits. Every tool in the

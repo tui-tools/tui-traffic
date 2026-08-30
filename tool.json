@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "name": "tui-template",
-  "binary": "tui-template",
-  "tagline": "A working skeleton for a new tui-tools tool",
-  "description": "The starting point for a new tool in the family. Press **Use this template**, rename it, replace one package, and you have a tool that looks and behaves like the rest.\n\nIt is not a pile of TODOs: it is a working tool. It lists the files in a directory and can update a file's timestamp, which is deliberately trivial — what matters is the shape around it, and that shape is already correct: the action table that generates the key map, the help screen and the confirm dialog; the backend interface with a real and a fake implementation; `--demo`; CI; and GoReleaser.\n\nThis `tool.json` is itself the example. It is a valid manifest, validated against [the schema](https://github.com/tui-tools/tui-kit/blob/main/schema/tool.schema.json) on every CI run, and the values are the ones you replace.",
-  "category": "template",
-  "homepage": "https://github.com/tui-tools/tui-template",
-  "repo": "https://github.com/tui-tools/tui-template",
+  "name": "tui-traffic",
+  "binary": "tui-traffic",
+  "tagline": "What the network is doing right now, interface by interface",
+  "description": "Realtime network metrics for one Linux machine, in the terminal. Three screens, refreshed every second, and every number on them comes from a file the kernel already exports.\n\n**Interfaces** is throughput per interface: RX and TX in bytes per second and packets per second, a sparkline over the last minute, the link state, and the errors and drops the counters have accumulated. It is `/proc/net/dev` read twice a second apart, which is what a rate actually is.\n\n**Connections** summarises the conntrack table: how many connections there are, what states they are in, split by protocol, and the busiest talkers by bytes when the kernel is counting them. Byte accounting (`net.netfilter.nf_conntrack_acct`) is off by default on most kernels, and when it is off this screen says so rather than inventing figures. On a machine with no conntrack at all it counts sockets instead and names the source it used.\n\n**Sockets** is what is listening and what is established, from `/proc/net/tcp`, `tcp6`, `udp` and `udp6`.\n\nIt changes nothing: no action key, no confirm dialog, and no privilege beyond the `sudo -n` that reading the conntrack table needs.",
+  "category": "network",
+  "homepage": "https://github.com/tui-tools/tui-traffic",
+  "repo": "https://github.com/tui-tools/tui-traffic",
   "license": "MIT",
   "platforms": [
     "linux/amd64",
@@ -16,30 +16,42 @@
   "logo": "assets/logo.png",
   "screenshots": [
     {
-      "path": "docs/screenshots/tui-template-main.png",
-      "caption": "The list: the four bands every tool in the family draws"
+      "path": "docs/screenshots/tui-traffic-main.png",
+      "caption": "Interfaces: RX and TX rates with a sparkline over the last minute"
     },
     {
-      "path": "docs/screenshots/tui-template-touch.png",
-      "caption": "The confirm dialog, showing the exact command line before it runs"
+      "path": "docs/screenshots/tui-traffic-connections.png",
+      "caption": "Connections: the conntrack table by state and protocol, and the busiest talkers"
     },
     {
-      "path": "docs/screenshots/tui-template-help.png",
-      "caption": "The help screen, generated from the action table"
+      "path": "docs/screenshots/tui-traffic-sockets.png",
+      "caption": "Sockets: what is listening, and what is established"
+    },
+    {
+      "path": "docs/screenshots/tui-traffic-help.png",
+      "caption": "The help screen, generated from the same key table as the hint bar"
     }
   ],
   "keys": [
     {
-      "key": "t",
-      "action": "Touch the selected file"
+      "key": "1 / 2 / 3",
+      "action": "Interfaces, connections, sockets"
+    },
+    {
+      "key": "tab",
+      "action": "Next screen"
+    },
+    {
+      "key": "p",
+      "action": "Pause and resume the one-second refresh"
     },
     {
       "key": "/",
-      "action": "Filter the list"
+      "action": "Filter the rows"
     },
     {
-      "key": "r / ctrl+r",
-      "action": "Re-read the directory"
+      "key": "r",
+      "action": "Sample now, without waiting for the tick"
     },
     {
       "key": "?",
@@ -52,85 +64,80 @@
   ],
   "backends": [
     {
-      "name": "coreutils",
-      "binary": "touch",
+      "name": "conntrack",
+      "binary": "conntrack",
       "versionCommand": [
-        "touch",
+        "conntrack",
         "--version"
       ],
-      "versionRegex": "coreutils\\) ([0-9][0-9.]*)",
-      "minimum": "8.0",
+      "versionRegex": "conntrack v([0-9][0-9.]*)",
+      "minimum": "1.4.0",
       "searchPaths": [
-        "/usr/bin/touch",
-        "/bin/touch"
-      ],
-      "features": [
-        {
-          "name": "no-dereference",
-          "since": "8.1"
-        }
+        "/usr/sbin/conntrack",
+        "/sbin/conntrack",
+        "/usr/bin/conntrack"
       ],
       "notes": [
         {
-          "range": "<8.1",
-          "impact": "`touch -h` is missing, so the timestamp of a symlink is set on its target instead of on the link"
+          "range": "<1.4.0",
+          "impact": "`conntrack -L -o extended` prints a layout this parser does not read, so the connections screen falls back to /proc/net/nf_conntrack or to counting sockets, and says which it used"
         }
       ]
     }
   ],
   "install": {
     "repo_url": "https://pkgs.tui.tools",
-    "source": {
-      "available": true,
-      "command": "git clone https://github.com/tui-tools/tui-template\ncd tui-template && make demo",
-      "url": "https://github.com/tui-tools/tui-template",
-      "note": "Or press \"Use this template\" on GitHub, which is the point of it."
-    },
     "pacman": {
       "available": false,
-      "package": "tui-template",
+      "package": "tui-traffic",
       "repo": "tui-tools",
       "requires_repo_setup": true,
-      "command": "sudo pacman -S tui-template",
+      "command": "sudo pacman -S tui-traffic",
       "url": "https://pkgs.tui.tools/arch",
-      "note": "The template is never packaged. Your tool's channel turns available once its first release lands in pkgs.tui.tools."
+      "note": "Nothing is published yet: tui-traffic is unreleased, and this channel turns available with its first release."
     },
     "apt": {
       "available": false,
-      "package": "tui-template",
+      "package": "tui-traffic",
       "repo": "tui-tools",
       "requires_repo_setup": true,
-      "command": "sudo apt install tui-template",
+      "command": "sudo apt install tui-traffic",
       "url": "https://pkgs.tui.tools/deb",
-      "note": "The template is never packaged. Your tool's channel turns available once its first release lands in pkgs.tui.tools."
+      "note": "Nothing is published yet: tui-traffic is unreleased, and this channel turns available with its first release."
     },
     "dnf": {
       "available": false,
-      "package": "tui-template",
+      "package": "tui-traffic",
       "repo": "tui-tools",
       "requires_repo_setup": true,
-      "command": "sudo dnf install tui-template",
+      "command": "sudo dnf install tui-traffic",
       "url": "https://pkgs.tui.tools/rpm",
-      "note": "The template is never packaged. Your tool's channel turns available once its first release lands in pkgs.tui.tools."
+      "note": "Nothing is published yet: tui-traffic is unreleased, and this channel turns available with its first release."
     },
     "binary": {
       "available": false,
-      "pattern": "tui-template_{version}_linux_{arch}.tar.gz",
-      "command": "curl -fsSL https://github.com/tui-tools/tui-template/releases/download/v{version}/tui-template_{version}_linux_{arch}.tar.gz | tar -xz tui-template\nsudo install -m0755 tui-template /usr/local/bin/tui-template",
-      "url": "https://github.com/tui-tools/tui-template/releases",
-      "note": "The template is never released. Your tool is, once you tag v0.1.0."
+      "pattern": "tui-traffic_{version}_linux_{arch}.tar.gz",
+      "command": "curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v{version}/tui-traffic_{version}_linux_{arch}.tar.gz | tar -xz tui-traffic\nsudo install -m0755 tui-traffic /usr/local/bin/tui-traffic",
+      "url": "https://github.com/tui-tools/tui-traffic/releases",
+      "note": "There is no release yet. Build from source in the meantime."
+    },
+    "source": {
+      "available": true,
+      "command": "git clone https://github.com/tui-tools/tui-traffic\ncd tui-traffic && make build\nsudo install -m0755 bin/tui-traffic /usr/local/bin/tui-traffic",
+      "url": "https://github.com/tui-tools/tui-traffic",
+      "note": "Needs Go 1.27 or newer. This is the only way to run it today."
     }
   },
   "security": {
-    "needs_sudo": "Only the touch action escalates, and only when the configured prefix is non-empty. Listing a directory is an ordinary read. Replace this sentence with what your own tool escalates for.",
+    "needs_sudo": "Only the conntrack table needs it. Everything else — /proc/net/dev, /proc/net/tcp and its siblings, /sys/class/net — is world-readable. Escalation is `sudo -n`, which never prompts: a machine where it does not work shows the socket-count fallback with the reason instead of asking for a password.",
     "preview_before_run": true,
     "no_daemon": true,
     "no_network": true,
     "static_binary": true,
     "signed_releases": false,
     "config_paths": [
-      "/etc/tui-template/config.toml",
-      "~/.config/tui-template/config.toml"
+      "/etc/tui-traffic/config.toml",
+      "~/.config/tui-traffic/config.toml"
     ]
   },
   "maintainers": [
@@ -139,12 +146,17 @@
       "github": "edimarlnx"
     }
   ],
-  "since": "2026-08-29",
+  "since": "2026-08-30",
   "keywords": [
-    "template",
-    "scaffold",
-    "bubbletea",
-    "starter"
+    "network",
+    "traffic",
+    "throughput",
+    "conntrack",
+    "sockets",
+    "monitoring",
+    "realtime",
+    "tui",
+    "bubbletea"
   ],
   "unreleased": true
 }

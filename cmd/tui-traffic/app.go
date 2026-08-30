@@ -11,7 +11,7 @@ import (
 	"github.com/tui-tools/tui-kit/runner"
 	"github.com/tui-tools/tui-kit/theme"
 	"github.com/tui-tools/tui-kit/ui"
-	"github.com/tui-tools/tui-template/internal/tool"
+	"github.com/tui-tools/tui-traffic/internal/tool"
 )
 
 // mode is the screen the app currently shows. Only one is open at a time,

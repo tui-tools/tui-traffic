@@ -8,7 +8,7 @@ import (
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/tui-tools/tui-kit/ui"
-	"github.com/tui-tools/tui-template/internal/tool"
+	"github.com/tui-tools/tui-traffic/internal/tool"
 )
 
 // Layout constants: the rows the list cannot use.
@@ -34,7 +34,7 @@ func (a *app) View() string {
 		return a.input.View(a.theme, a.width, a.height)
 	case modeHelp:
 		return lipgloss.Place(a.width, a.height, lipgloss.Center, lipgloss.Center,
-			ui.HelpScreen(a.theme, "tui-template — keys", helpKeys(), a.width))
+			ui.HelpScreen(a.theme, "tui-traffic — keys", helpKeys(), a.width))
 	default:
 		return a.listView()
 	}
@@ -85,7 +85,7 @@ func (a *app) header() string {
 	if a.filter != "" {
 		subtitle += "  ·  filter: " + a.filter
 	}
-	return ui.Header{Title: "tui-template", Subtitle: subtitle, Facts: facts}.
+	return ui.Header{Title: "tui-traffic", Subtitle: subtitle, Facts: facts}.
 		Render(a.theme, a.width)
 }
 

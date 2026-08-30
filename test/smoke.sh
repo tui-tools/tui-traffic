@@ -1,10 +1,10 @@
 #!/bin/bash
-# Backend smoke test for tui-template, run inside a lab guest.
+# Backend smoke test for tui-traffic, run inside a lab guest.
 #
 # The contract (see tui-tools/tui-lab): this script runs on the guest as the
 # unprivileged lab user, escalates with `sudo -n` only, prints a short PASS/FAIL
 # table and exits non-zero if anything failed. The binary under test is at
-# $TUI_LAB_BIN (default: tui-template on PATH).
+# $TUI_LAB_BIN (default: tui-traffic on PATH).
 #
 # What a smoke test proves is that the tool reads the machine's *real* subject
 # and agrees with the machine's own tooling — not that a fake renders. The
@@ -13,7 +13,7 @@
 # record_compat that appends the probed version to compat/results.jsonl.
 set -uo pipefail
 
-bin="${TUI_LAB_BIN:-tui-template}"
+bin="${TUI_LAB_BIN:-tui-traffic}"
 pass=0
 fail=0
 
@@ -33,7 +33,7 @@ check() {
   fi
 }
 
-echo "--- tui-template smoke on $(. /etc/os-release && echo "$PRETTY_NAME")"
+echo "--- tui-traffic smoke on $(. /etc/os-release && echo "$PRETTY_NAME")"
 echo "      user=$(id -un)"
 
 # --- the report block ------------------------------------------------------
@@ -68,5 +68,5 @@ check "report leaks neither a home path nor the host name" \
   "$bin --report | grep -vE '^(distro|kernel): ' | grep -cE '/home/|$(uname -n)' || true" \
   '^0$'
 
-echo "--- tui-template: $pass passed, $fail failed"
+echo "--- tui-traffic: $pass passed, $fail failed"
 [[ $fail -eq 0 ]]
