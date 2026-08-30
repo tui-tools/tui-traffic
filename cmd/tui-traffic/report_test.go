@@ -5,7 +5,9 @@ import (
 	"os/user"
 	"strings"
 	"testing"
+	"time"
 
+	"github.com/tui-tools/tui-kit/compat"
 	"github.com/tui-tools/tui-kit/config"
 )
 
@@ -15,23 +17,26 @@ func baseConfig() config.Config {
 	return config.Config{Tool: toolName, Values: defaults()}
 }
 
-// TestRunReportDemo checks the half of the block this tool owns. The kit's own
-// tests cover the machine facts and the scrubbing; what has to be right here is
-// that --demo says demo, that the imitated backend is named rather than the
-// name the fake gives itself, and that nothing on the machine was read to
-// produce any of it.
-func TestRunReportDemo(t *testing.T) {
+// render runs a report and returns the block.
+func render(t *testing.T, cfg config.Config, opts options) string {
+	t.Helper()
 	var out strings.Builder
-	opts := options{demo: true, report: true}
-	if err := runReport(baseConfig(), opts, &out); err != nil {
+	if err := runReport(cfg, opts, defaultInterval, &out); err != nil {
 		t.Fatalf("runReport: %v", err)
 	}
+	return out.String()
+}
 
-	got := out.String()
+// TestRunReportDemo checks the half of the block this tool owns. What has to
+// be right is that --demo says demo, that it names what the fake stands in
+// for, and that nothing on the machine was read to produce any of it.
+func TestRunReportDemo(t *testing.T) {
+	got := render(t, baseConfig(), options{demo: true, report: true})
 	for _, want := range []string{
 		"backend: demo\n",
 		"mode: demo (sample data, the system was not read)\n",
-		"demo backend: " + listerName + "\n",
+		"demo backend: proc\n",
+		"interval: 1s\n",
 	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("report is missing %q:\n%s", want, got)
@@ -42,54 +47,62 @@ func TestRunReportDemo(t *testing.T) {
 	}
 }
 
-// TestRunReportLive checks that a live run names the backend the manifest
-// declares, and says the run was live.
-func TestRunReportLive(t *testing.T) {
-	var out strings.Builder
-	if err := runReport(baseConfig(), options{report: true}, &out); err != nil {
-		t.Fatalf("runReport: %v", err)
-	}
-
-	got := out.String()
-	for _, want := range []string{"backend: " + backendName, "mode: live\n"} {
+// The two lines only this tool adds are the ones that explain most of what
+// anybody will report about it: where each screen reads from on this machine,
+// and whether the kernel counts bytes per connection.
+func TestRunReportNamesItsSources(t *testing.T) {
+	got := render(t, baseConfig(), options{report: true})
+	for _, want := range []string{
+		"mode: live\n",
+		"backend: proc (",
+		"interfaces from: /proc/net/dev\n",
+		"sockets from: /proc/net/tcp",
+		"conntrack accounting: ",
+		"connections from: ",
+		"backends: conntrack ",
+	} {
 		if !strings.Contains(got, want) {
 			t.Errorf("report is missing %q:\n%s", want, got)
 		}
 	}
 }
 
-// TestRunReportSurvivesAMissingBackend is the case a report exists for: a
-// machine the tool cannot drive at all. It must still produce a block, with
-// the failure as one of its lines and the path in that failure scrubbed.
-func TestRunReportSurvivesAMissingBackend(t *testing.T) {
-	cfg := baseConfig()
-	// "ana" is one of the family's stand-in names, which the secret scanner
-	// knows is invented rather than captured from somebody's machine.
-	cfg.Set(keyDir, "/home/ana/not-a-directory")
-
-	var out strings.Builder
-	if err := runReport(cfg, options{report: true}, &out); err != nil {
-		t.Fatalf("runReport: %v", err)
+// A machine without conntrack is the common case, and the report has to say
+// "absent" rather than leaving it out: a missing line reads as a tool that
+// did not look.
+func TestDescribeBackends(t *testing.T) {
+	tests := []struct {
+		name string
+		in   []compat.Result
+		want string
+	}{
+		{"a version was read",
+			[]compat.Result{{Backend: "conntrack", Version: "1.4.8"}},
+			"conntrack 1.4.8"},
+		{"the program is not on the machine",
+			[]compat.Result{{Backend: "conntrack", Detail: notAvailable + ": …"}},
+			"conntrack absent"},
+		{"it is here and said nothing, which is a different bug",
+			[]compat.Result{{Backend: "conntrack", Detail: "exit status 1"}},
+			"conntrack (version unread)"},
+		{"nothing was probed at all", nil, "none"},
 	}
-
-	got := out.String()
-	if !strings.Contains(got, "backend error: ") {
-		t.Errorf("report should carry the reason no backend was built:\n%s", got)
-	}
-	if strings.Contains(got, "/home/") {
-		t.Errorf("the backend error was not scrubbed:\n%s", got)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := describeBackends(tc.in); got != tc.want {
+				t.Errorf("describeBackends = %q, want %q", got, tc.want)
+			}
+		})
 	}
 }
 
-// TestRunReportKeepsItsPrivacyPromise is the assertion the bug form depends on.
-// The block is pasted into a public issue, so the user name, the home path and
-// the host name appearing in it would be a disclosure, not a cosmetic slip.
+// TestRunReportKeepsItsPrivacyPromise is the assertion the bug form depends
+// on. The block is pasted into a public issue, so the user name, the home
+// path or the host name appearing in it would be a disclosure rather than a
+// cosmetic slip — and this tool's block carries addresses nowhere near it for
+// the same reason: --report takes no sample.
 func TestRunReportKeepsItsPrivacyPromise(t *testing.T) {
-	var out strings.Builder
-	if err := runReport(baseConfig(), options{report: true}, &out); err != nil {
-		t.Fatalf("runReport: %v", err)
-	}
-	got := out.String()
+	got := render(t, baseConfig(), options{report: true})
 
 	if strings.Contains(got, "/home/") {
 		t.Errorf("report carries a home path:\n%s", got)
@@ -129,27 +142,42 @@ func assertAbsent(t *testing.T, block, name, what string) {
 }
 
 // TestScrubHome covers the one value this tool passes into the block that
-// could name its user: the directory it was asked to list.
+// could name its user: the escalation prefix resolves to an absolute path,
+// and a sudo somebody built in their own home directory would arrive here
+// named after them.
 func TestScrubHome(t *testing.T) {
 	tests := []struct {
 		name string
 		in   string
 		want string
 	}{
-		{"a home path", "/home/ana/photos is not a directory",
-			"~elsewhere~ is not a directory"},
-		{"root's home", "/root/tmp is not a directory",
-			"~elsewhere~ is not a directory"},
-		{"a path that names nobody", "/srv/data is not a directory",
-			"/srv/data is not a directory"},
-		{"nothing to scrub", "touch was not found", "touch was not found"},
+		{"a home path", "/home/ana/bin/sudo -n conntrack -L",
+			"~elsewhere~ -n conntrack -L"},
+		{"root's home", "/root/bin/doas conntrack -L",
+			"~elsewhere~ conntrack -L"},
+		{"a path that names nobody", "/usr/bin/sudo -n conntrack -L",
+			"/usr/bin/sudo -n conntrack -L"},
+		{"nothing to scrub", "conntrack was not found", "conntrack was not found"},
 	}
-
 	for _, tc := range tests {
 		t.Run(tc.name, func(t *testing.T) {
 			if got := scrubHome(tc.in); got != tc.want {
 				t.Errorf("scrubHome(%q) = %q, want %q", tc.in, got, tc.want)
 			}
 		})
+	}
+}
+
+// The interval is on the block because it is what the rates were divided by,
+// and a report of numbers that look wrong is usually a report about the
+// window they were measured over.
+func TestRunReportCarriesTheInterval(t *testing.T) {
+	var out strings.Builder
+	if err := runReport(baseConfig(), options{report: true},
+		2500*time.Millisecond, &out); err != nil {
+		t.Fatalf("runReport: %v", err)
+	}
+	if !strings.Contains(out.String(), "interval: 2.5s\n") {
+		t.Errorf("the interval is missing from the block:\n%s", out.String())
 	}
 }

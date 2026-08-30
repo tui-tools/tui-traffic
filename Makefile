@@ -1,8 +1,8 @@
-# tui-template — build, test and lint.
+# tui-traffic — build, test and lint.
 
 GO      ?= go
 BIN     ?= bin
-TOOL    := tui-template
+TOOL    := tui-traffic
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 LDFLAGS := -s -w -X main.version=$(VERSION)
 # The screenshot renderer is shared by the whole family and ships with the
@@ -62,10 +62,16 @@ tidy:
 	$(GO) mod tidy
 
 ## screenshots: re-render the README frames from --demo (needs chrome/chromium).
+##
+## The demo is sampled faster than a real run so the sparkline has a shape by
+## the time the frame is taken: the picture is of the last N samples, and at
+## one second each there would be two of them when the shutter opens.
 screenshots: build
 	python3 $(KIT)/tools/render-screenshots.py \
 		--bin $(BIN)/$(TOOL) --name $(TOOL) --out docs/screenshots \
-		--screen main= --screen touch=t --screen help=?
+		--args "--demo --interval 150ms" --settle 4 --budget 9 \
+		--screen main= --screen connections=2 --screen sockets=3 \
+		--screen help=?
 
 ## readme: regenerate the generated README sections from tool.json.
 readme:
