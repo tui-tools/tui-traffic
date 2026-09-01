@@ -157,6 +157,5 @@
     "realtime",
     "tui",
     "bubbletea"
-  ],
-  "unreleased": true
+  ]
 }

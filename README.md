@@ -155,7 +155,7 @@ available with its first release.
 ### Any distribution, static binary — coming soon
 
 ```sh
-curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v{version}/tui-traffic_{version}_linux_amd64.tar.gz | tar -xz tui-traffic
+curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v0.1.0/tui-traffic_0.1.0_linux_amd64.tar.gz | tar -xz tui-traffic
 sudo install -m0755 tui-traffic /usr/local/bin/tui-traffic
 ```
 
