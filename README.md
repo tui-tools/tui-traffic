@@ -1,8 +1,9 @@
 <img src="assets/logo.png" alt="tui-tools" width="240">
 
-> **Unreleased.** This tool has not been tagged yet: there is no package and no
-> binary to download, and the install section below says so. Build it from
-> source, and expect keys and flags to move.
+<!-- stability:start -->
+> **Beta** tools may still change keys, flags or output before their 1.0;
+> stable tools follow semver. Pin versions, and report what breaks.
+<!-- stability:end -->
 
 # tui-traffic
 
@@ -155,7 +156,7 @@ available with its first release.
 ### Any distribution, static binary — coming soon
 
 ```sh
-curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v0.1.2/tui-traffic_0.1.2_linux_amd64.tar.gz | tar -xz tui-traffic
+curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v0.1.4/tui-traffic_0.1.4_linux_amd64.tar.gz | tar -xz tui-traffic
 sudo install -m0755 tui-traffic /usr/local/bin/tui-traffic
 ```
 
