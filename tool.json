@@ -88,44 +88,44 @@
   "install": {
     "repo_url": "https://pkgs.tui.tools",
     "pacman": {
-      "available": false,
+      "available": true,
       "package": "tui-traffic",
       "repo": "tui-tools",
       "requires_repo_setup": true,
       "command": "sudo pacman -S tui-traffic",
       "url": "https://pkgs.tui.tools/arch",
-      "note": "Nothing is published yet: tui-traffic is unreleased, and this channel turns available with its first release."
+      "note": "Upgrades then arrive with the rest of your system updates."
     },
     "apt": {
-      "available": false,
+      "available": true,
       "package": "tui-traffic",
       "repo": "tui-tools",
       "requires_repo_setup": true,
       "command": "sudo apt install tui-traffic",
       "url": "https://pkgs.tui.tools/deb",
-      "note": "Nothing is published yet: tui-traffic is unreleased, and this channel turns available with its first release."
+      "note": "Upgrades then arrive with the rest of your system updates."
     },
     "dnf": {
-      "available": false,
+      "available": true,
       "package": "tui-traffic",
       "repo": "tui-tools",
       "requires_repo_setup": true,
       "command": "sudo dnf install tui-traffic",
       "url": "https://pkgs.tui.tools/rpm",
-      "note": "Nothing is published yet: tui-traffic is unreleased, and this channel turns available with its first release."
+      "note": "Upgrades then arrive with the rest of your system updates."
     },
     "binary": {
-      "available": false,
+      "available": true,
       "pattern": "tui-traffic_{version}_linux_{arch}.tar.gz",
       "command": "curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v{version}/tui-traffic_{version}_linux_{arch}.tar.gz | tar -xz tui-traffic\nsudo install -m0755 tui-traffic /usr/local/bin/tui-traffic",
       "url": "https://github.com/tui-tools/tui-traffic/releases",
-      "note": "There is no release yet. Build from source in the meantime."
+      "note": "One static binary. Verify it against checksums.txt from the same release."
     },
     "source": {
       "available": true,
       "command": "git clone https://github.com/tui-tools/tui-traffic\ncd tui-traffic && make build\nsudo install -m0755 bin/tui-traffic /usr/local/bin/tui-traffic",
       "url": "https://github.com/tui-tools/tui-traffic",
-      "note": "Needs Go 1.27 or newer. This is the only way to run it today."
+      "note": "Needs Go 1.27 or newer."
     }
   },
   "security": {
