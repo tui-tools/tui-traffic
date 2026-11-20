@@ -162,7 +162,7 @@ Upgrades then arrive with the rest of your system updates.
 ### Any distribution, static binary
 
 ```sh
-curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v0.1.4/tui-traffic_0.1.4_linux_amd64.tar.gz | tar -xz tui-traffic
+curl -fsSL https://github.com/tui-tools/tui-traffic/releases/download/v0.1.5/tui-traffic_0.1.5_linux_amd64.tar.gz | tar -xz tui-traffic
 sudo install -m0755 tui-traffic /usr/local/bin/tui-traffic
 ```
 
